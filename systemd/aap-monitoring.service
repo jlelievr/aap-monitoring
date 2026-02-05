@@ -1,0 +1,18 @@
+# systemd/aap-monitoring.service
+[Unit]
+Description=AAP Monitoring Stack (Podman Pod)
+Docs=https://github.com/jlelievr/aap-monitoring
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Restart=on-failure
+Type=simple
+# Adjust the path below to match your installation directory
+WorkingDirectory=%h/aap-monitoring
+ExecStart=/usr/bin/podman play kube monitoring-pod.yaml
+ExecStop=/usr/bin/podman pod stop monitoring-stack
+ExecStopPost=/usr/bin/podman pod rm monitoring-stack --force
+
+[Install]
+WantedBy=default.target

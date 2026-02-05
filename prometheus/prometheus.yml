@@ -1,0 +1,19 @@
+# prometheus/prometheus.yml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # --- Ansible Automation Platform ---
+  - job_name: 'ansible-automation-platform'
+    metrics_path: /api/controller/v2/metrics/
+    scheme: https
+    static_configs:
+      - targets: ['your-aap-controller.example.com']
+    bearer_token: 'YOUR_AAP_TOKEN_HERE'
+    tls_config:
+      insecure_skip_verify: true # Set false if using valid Certs
+
+  # --- PostgreSQL Database ---
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['localhost:9187'] # Localhost works because they share the Pod
