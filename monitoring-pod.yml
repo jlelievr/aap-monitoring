@@ -1,0 +1,59 @@
+# monitoring-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: monitoring-stack
+  labels:
+    app: aap-monitoring
+spec:
+  containers:
+    # --- Prometheus ---
+    - name: prometheus
+      image: docker.io/prom/prometheus:latest
+      args:
+        - "--config.file=/etc/prometheus/prometheus.yml"
+        - "--storage.tsdb.path=/prometheus"
+      ports:
+        - containerPort: 9090
+          hostPort: 9090  # Maps to host
+      volumeMounts:
+        - name: prometheus-config
+          mountPath: /etc/prometheus/prometheus.yml
+        - name: prometheus-data
+          mountPath: /prometheus
+      securityContext:
+        runAsUser: 0  # Often needed for volume permissions in rootless, or adjust permissions manually
+
+    # --- Grafana ---
+    - name: grafana
+      image: docker.io/grafana/grafana-oss:latest
+      env:
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: "admin"
+      ports:
+        - containerPort: 3000
+          hostPort: 3000
+      volumeMounts:
+        - name: grafana-data
+          mountPath: /var/lib/grafana
+
+    # --- Postgres Exporter ---
+    - name: postgres-exporter
+      image: quay.io/prometheuscommunity/postgres-exporter:latest
+      env:
+        - name: DATA_SOURCE_NAME
+          # Replace details below
+          value: "postgresql://postgres_exporter:PASSWORD@DB_HOST:5432/postgres?sslmode=disable"
+
+  # --- Volumes Configuration ---
+  volumes:
+    - name: prometheus-config
+      hostPath:
+        path: ./prometheus/prometheus.yml # Relative path works if you run play kube from this dir
+        type: File
+    - name: prometheus-data
+      persistentVolumeClaim:
+        claimName: prometheus_pvc # Podman creates a named volume automatically for this
+    - name: grafana-data
+      persistentVolumeClaim:
+        claimName: grafana_pvc
