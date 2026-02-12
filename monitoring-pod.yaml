@@ -5,7 +5,12 @@ metadata:
   name: monitoring-stack
   labels:
     app: aap-monitoring
+  annotations:
+    io.podman.annotations.label: "disable"
+    io.kubernetes.cri-o.Devices: "/dev/fuse"
 spec:
+  securityContext:
+    fsGroup: 65534  # Prometheus user/group
   containers:
     # --- Prometheus ---
     - name: prometheus
@@ -18,11 +23,11 @@ spec:
           hostPort: 9090  # Maps to host
       volumeMounts:
         - name: prometheus-config
-          mountPath: /etc/prometheus/prometheus.yml
+          mountPath: /etc/prometheus
         - name: prometheus-data
           mountPath: /prometheus
       securityContext:
-        runAsUser: 0  # Often needed for volume permissions in rootless, or adjust permissions manually
+        runAsUser: 0
 
     # --- Grafana ---
     - name: grafana
@@ -49,8 +54,8 @@ spec:
   volumes:
     - name: prometheus-config
       hostPath:
-        path: ./prometheus/prometheus.yml # Relative path works if you run play kube from this dir
-        type: File
+        path: /home/jlelievr/aap-monitoring/prometheus
+        type: Directory
     - name: prometheus-data
       persistentVolumeClaim:
         claimName: prometheus_pvc # Podman creates a named volume automatically for this
